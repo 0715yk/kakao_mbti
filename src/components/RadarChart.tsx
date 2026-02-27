@@ -11,9 +11,9 @@ const KEYS: (keyof BigFive)[] = [
   "neuroticism",
 ];
 
-const CX = 130;
-const CY = 130;
-const R = 95;
+const CX = 155;
+const CY = 135;
+const R = 88;
 const GRID = [0.25, 0.5, 0.75, 1];
 
 function polar(i: number, scale: number) {
@@ -29,7 +29,7 @@ export default function RadarChart({ data }: { data: BigFive }) {
   const dataPoly = dataPoints.map((p) => `${p.x},${p.y}`).join(" ");
 
   return (
-    <svg viewBox="0 0 260 260" className="w-full max-w-[260px] mx-auto">
+    <svg viewBox="0 0 310 270" className="w-full max-w-[280px] mx-auto">
       {/* Grid pentagons */}
       {GRID.map((s) => (
         <polygon

@@ -15,6 +15,11 @@ export const metadata: Metadata = {
   ),
   title: "카톡으로 보는 나의 MBTI",
   description: "카카오톡 대화를 분석해서 당신의 진짜 MBTI를 알아보세요",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "카톡 MBTI",
+  },
   openGraph: {
     title: "카톡으로 보는 나의 MBTI",
     description: "카카오톡 대화를 분석해서 당신의 진짜 MBTI를 알아보세요",

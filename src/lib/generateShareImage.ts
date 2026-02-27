@@ -5,12 +5,21 @@ const W = 640;
 const PAD = 44;
 const CW = W - PAD * 2;
 
+const CARD_PX = 16;
+const LABEL_Y = 28;
+const CONTENT_Y = 50;
+const CONTENT_PAD_BOTTOM = 16;
+const CARD_GAP = 14;
+const LIST_LINE_H = 20;
+const LIST_ITEM_GAP = 8;
+const SUMMARY_LINE_H = 22;
+
 const font = (weight: string, size: number) =>
   `${weight} ${size}px system-ui, -apple-system, "Segoe UI", sans-serif`;
 
 function roundRect(
   ctx: CanvasRenderingContext2D,
-  x: number, y: number, w: number, h: number, r: number
+  x: number, y: number, w: number, h: number, r: number,
 ) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -49,7 +58,24 @@ function drawCard(ctx: CanvasRenderingContext2D, x: number, y: number, w: number
   ctx.stroke();
 }
 
-// ── Radar Chart ──
+function listContentH(items: string[][]): number {
+  let h = 0;
+  for (let i = 0; i < items.length; i++) {
+    h += items[i].length * LIST_LINE_H;
+    if (i < items.length - 1) h += LIST_ITEM_GAP;
+  }
+  return h;
+}
+
+function listCardH(items: string[][]): number {
+  return CONTENT_Y + listContentH(items) + CONTENT_PAD_BOTTOM;
+}
+
+function textCardH(lineCount: number, lineH: number): number {
+  return CONTENT_Y + lineCount * lineH + CONTENT_PAD_BOTTOM;
+}
+
+// ── Radar ──
 
 const BF_LABELS = ["개방성", "성실성", "외향성", "친화성", "신경성"];
 const BF_KEYS: (keyof BigFive)[] = [
@@ -117,56 +143,56 @@ function drawRadar(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: num
 
 export async function generateShareImage(
   result: AnalysisResult,
-  userName: string
+  userName: string,
 ): Promise<Blob> {
   const mbti = getMbtiData(result.mbtiType);
-  const textW = CW - 32;
+  const textW = CW - CARD_PX * 2;
+  const listTextW = textW - 20;
 
-  // Pre-measure text for height calculation
   const measure = document.createElement("canvas").getContext("2d")!;
 
   measure.font = font("normal", 14);
   const summaryLines = wrapText(measure, result.summary, textW);
 
   measure.font = font("normal", 13);
-  const strengthLines = result.strengths.map((s) => wrapText(measure, s, textW - 16));
-  const blindLines = result.blindSpots.map((s) => wrapText(measure, s, textW - 16));
-  const evidenceLines = result.evidence.map((s) => wrapText(measure, s, textW - 16));
+  const strengthLines = result.strengths.map((s) => wrapText(measure, s, listTextW));
+  const blindLines = result.blindSpots.map((s) => wrapText(measure, s, listTextW));
+  const evidenceLines = result.evidence.map((s) => wrapText(measure, s, listTextW));
   const funLines = wrapText(measure, result.funInsight, textW);
 
   const RADAR_H = 220;
   const confidence = Math.min(100, Math.max(0, result.confidence ?? 70));
 
-  // Calculate total height
+  const confCardH = 44;
+  const sumCardH = textCardH(summaryLines.length, SUMMARY_LINE_H);
+  const roleCardH = 62;
+  const radarCardH = CONTENT_Y + RADAR_H + CONTENT_PAD_BOTTOM;
+  const strCardH = listCardH(strengthLines);
+  const bsCardH = listCardH(blindLines);
+  const eviCardH = listCardH(evidenceLines);
+  const funCardH = textCardH(funLines.length, LIST_LINE_H);
+
   let H = 0;
-  H += 52; // branding
-  H += 44; // user line
-  H += 100; // badge
-  H += 44; // title
-  H += 30; // gap
-  H += 52; // confidence card
-  H += 16;
-  H += 24 + summaryLines.length * 22 + 16; // summary card
-  H += 16;
-  H += 70; // role + style (side by side)
-  H += 16;
-  H += 40 + RADAR_H + 16; // radar card
-  H += 16;
-  H += 36 + strengthLines.reduce((a, l) => a + l.length * 20 + 6, 0) + 8; // strengths
-  H += 16;
-  H += 36 + blindLines.reduce((a, l) => a + l.length * 20 + 6, 0) + 8; // blind spots
-  H += 16;
-  H += 36 + evidenceLines.reduce((a, l) => a + l.length * 20 + 6, 0) + 8; // evidence
-  H += 16;
-  H += 24 + funLines.length * 20 + 20; // fun insight
-  H += 50; // watermark
+  H += 44;                            // branding
+  H += 40;                            // user line
+  H += 28 + 72 + 22;                  // badge
+  H += 30;                            // title
+  H += CARD_GAP;
+  H += confCardH + CARD_GAP;
+  H += sumCardH + CARD_GAP;
+  H += roleCardH + CARD_GAP;
+  H += radarCardH + CARD_GAP;
+  H += strCardH + CARD_GAP;
+  H += bsCardH + CARD_GAP;
+  H += eviCardH + CARD_GAP;
+  H += funCardH + CARD_GAP;
+  H += 40;                            // watermark
 
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d")!;
 
-  // Background
   const bg = ctx.createLinearGradient(0, 0, W * 0.3, H);
   bg.addColorStop(0, "#1a1145");
   bg.addColorStop(1, "#0f0a1e");
@@ -183,7 +209,7 @@ export async function generateShareImage(
   ctx.fillText("카톡으로 보는 나의 MBTI", W / 2, y);
 
   // ── User line ──
-  y += 44;
+  y += 40;
   ctx.font = font("normal", 15);
   ctx.fillStyle = "rgba(255,255,255,0.55)";
   ctx.fillText(`${userName}의 대화 분석 결과`, W / 2, y);
@@ -200,135 +226,131 @@ export async function generateShareImage(
   ctx.font = font("bold", 36);
   ctx.fillStyle = "#ffffff";
   ctx.fillText(`${mbti.emoji}  ${result.mbtiType}`, W / 2, y + 46);
-  y += bh + 24;
+  y += bh + 22;
 
   // ── Title ──
   ctx.font = font("bold", 20);
   ctx.fillStyle = "#ffffff";
   ctx.fillText(result.title, W / 2, y);
-  y += 36;
+  y += 30 + CARD_GAP;
 
   // ── Confidence ──
-  drawCard(ctx, PAD, y, CW, 40);
   ctx.textAlign = "left";
+  drawCard(ctx, PAD, y, CW, confCardH);
   ctx.font = font("normal", 12);
   ctx.fillStyle = "rgba(255,255,255,0.5)";
-  ctx.fillText("분석 확신도", PAD + 16, y + 25);
+  ctx.fillText("분석 확신도", PAD + CARD_PX, y + 27);
   ctx.textAlign = "right";
   ctx.font = font("bold", 12);
   ctx.fillStyle = "#c4b5fd";
-  ctx.fillText(`${confidence}%`, PAD + CW - 16, y + 25);
-  // Bar background
-  const barX = PAD + 100, barW = CW - 130, barY = y + 18, barH = 6;
+  ctx.fillText(`${confidence}%`, PAD + CW - CARD_PX, y + 27);
+  const barX = PAD + 100, barW = CW - 130, barY = y + 20, barH = 6;
   ctx.fillStyle = "rgba(255,255,255,0.1)";
   roundRect(ctx, barX, barY, barW, barH, 3);
   ctx.fill();
-  // Bar fill
   const fillGrad = ctx.createLinearGradient(barX, 0, barX + barW, 0);
   fillGrad.addColorStop(0, "#8b5cf6");
   fillGrad.addColorStop(1, "#ec4899");
   ctx.fillStyle = fillGrad;
   roundRect(ctx, barX, barY, barW * (confidence / 100), barH, 3);
   ctx.fill();
-  y += 52 + 16;
+  y += confCardH + CARD_GAP;
 
   // ── Summary ──
-  const sumH = 20 + summaryLines.length * 22 + 12;
-  drawCard(ctx, PAD, y, CW, sumH);
   ctx.textAlign = "left";
+  drawCard(ctx, PAD, y, CW, sumCardH);
   ctx.font = font("bold", 13);
   ctx.fillStyle = "#c4b5fd";
-  ctx.fillText("📝 성격 요약", PAD + 16, y + 22);
+  ctx.fillText("📝 성격 요약", PAD + CARD_PX, y + LABEL_Y);
   ctx.font = font("normal", 14);
   ctx.fillStyle = "rgba(255,255,255,0.8)";
-  let ty = y + 42;
+  let ty = y + CONTENT_Y;
   for (const line of summaryLines) {
-    ctx.fillText(line, PAD + 16, ty);
-    ty += 22;
+    ctx.fillText(line, PAD + CARD_PX, ty);
+    ty += SUMMARY_LINE_H;
   }
-  y += sumH + 16;
+  y += sumCardH + CARD_GAP;
 
-  // ── Role + Style (side by side) ──
+  // ── Role + Style ──
   const halfW = (CW - 12) / 2;
-  drawCard(ctx, PAD, y, halfW, 60);
-  drawCard(ctx, PAD + halfW + 12, y, halfW, 60);
+  drawCard(ctx, PAD, y, halfW, roleCardH);
+  drawCard(ctx, PAD + halfW + 12, y, halfW, roleCardH);
   ctx.font = font("bold", 11);
   ctx.fillStyle = "#f9a8d4";
-  ctx.fillText("🎭 대화 속 역할", PAD + 14, y + 22);
+  ctx.fillText("🎭 대화 속 역할", PAD + CARD_PX, y + 24);
   ctx.fillStyle = "#67e8f9";
-  ctx.fillText("🧠 인지 스타일", PAD + halfW + 24, y + 22);
+  ctx.fillText("🧠 인지 스타일", PAD + halfW + 12 + CARD_PX, y + 24);
   ctx.font = font("bold", 13);
   ctx.fillStyle = "#ffffff";
-  ctx.fillText(result.socialRole, PAD + 14, y + 44);
-  ctx.fillText(result.cognitiveStyle, PAD + halfW + 24, y + 44);
-  y += 60 + 16;
+  ctx.fillText(result.socialRole, PAD + CARD_PX, y + 44);
+  ctx.fillText(result.cognitiveStyle, PAD + halfW + 12 + CARD_PX, y + 44);
+  y += roleCardH + CARD_GAP;
 
   // ── Radar ──
-  const radarCardH = 36 + RADAR_H + 12;
   drawCard(ctx, PAD, y, CW, radarCardH);
   ctx.font = font("bold", 13);
   ctx.fillStyle = "#c4b5fd";
-  ctx.fillText("📊 Big Five 성격 지표", PAD + 16, y + 26);
-  drawRadar(ctx, W / 2, y + 36 + RADAR_H / 2, RADAR_H / 2 - 24, result.bigFive);
-  y += radarCardH + 16;
+  ctx.fillText("📊 Big Five 성격 지표", PAD + CARD_PX, y + LABEL_Y);
+  drawRadar(ctx, W / 2, y + CONTENT_Y + RADAR_H / 2, RADAR_H / 2 - 24, result.bigFive);
+  y += radarCardH + CARD_GAP;
 
-  // ── Helper: list card ──
+  // ── List card helper ──
   function drawListCard(
-    label: string,
-    color: string,
-    bullet: string,
-    items: string[][],
+    label: string, color: string, bullet: string,
+    items: string[][], cardH: number,
   ) {
-    const cardH = 36 + items.reduce((a, l) => a + l.length * 20 + 6, 0) + 4;
     drawCard(ctx, PAD, y, CW, cardH);
     ctx.font = font("bold", 13);
     ctx.fillStyle = color;
-    ctx.fillText(label, PAD + 16, y + 26);
-    let iy = y + 48;
-    for (const lines of items) {
+    ctx.textAlign = "left";
+    ctx.fillText(label, PAD + CARD_PX, y + LABEL_Y);
+
+    let iy = y + CONTENT_Y;
+    for (let idx = 0; idx < items.length; idx++) {
+      const lines = items[idx];
       ctx.fillStyle = color;
       ctx.font = font("normal", 10);
-      ctx.fillText(bullet, PAD + 16, iy);
+      ctx.fillText(bullet, PAD + CARD_PX, iy);
       ctx.fillStyle = "rgba(255,255,255,0.8)";
       ctx.font = font("normal", 13);
       for (const line of lines) {
-        ctx.fillText(line, PAD + 30, iy);
-        iy += 20;
+        ctx.fillText(line, PAD + CARD_PX + 18, iy);
+        iy += LIST_LINE_H;
       }
-      iy += 6;
+      if (idx < items.length - 1) iy += LIST_ITEM_GAP;
     }
-    y += cardH + 16;
+    y += cardH + CARD_GAP;
   }
 
-  drawListCard("💪 강점", "#6ee7b7", "●", strengthLines);
-  drawListCard("⚠️ 블라인드 스팟", "#fcd34d", "●", blindLines);
-  drawListCard("📌 분석 근거", "rgba(255,255,255,0.5)", "―", evidenceLines);
+  drawListCard("💪 강점", "#6ee7b7", "●", strengthLines, strCardH);
+  drawListCard("⚠️ 블라인드 스팟", "#fcd34d", "●", blindLines, bsCardH);
+  drawListCard("📌 분석 근거", "rgba(255,255,255,0.5)", "―", evidenceLines, eviCardH);
 
   // ── Fun Insight ──
-  const funH = 24 + funLines.length * 20 + 16;
-  drawCard(ctx, PAD, y, CW, funH);
+  drawCard(ctx, PAD, y, CW, funCardH);
   ctx.font = font("bold", 13);
   ctx.fillStyle = "#f9a8d4";
-  ctx.fillText("💡 재미있는 인사이트", PAD + 16, y + 22);
+  ctx.textAlign = "left";
+  ctx.fillText("💡 재미있는 인사이트", PAD + CARD_PX, y + LABEL_Y);
   ctx.font = font("normal", 13);
   ctx.fillStyle = "rgba(255,255,255,0.8)";
-  ty = y + 44;
+  ty = y + CONTENT_Y;
   for (const line of funLines) {
-    ctx.fillText(line, PAD + 16, ty);
-    ty += 20;
+    ctx.fillText(line, PAD + CARD_PX, ty);
+    ty += LIST_LINE_H;
   }
-  y += funH + 16;
+  y += funCardH + CARD_GAP;
 
   // ── Watermark ──
   ctx.textAlign = "center";
   ctx.font = font("normal", 11);
   ctx.fillStyle = "rgba(255,255,255,0.18)";
-  ctx.fillText("카톡으로 보는 나의 MBTI 🔮", W / 2, H - 20);
+  ctx.fillText("카톡으로 보는 나의 MBTI 🔮", W / 2, y + 16);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => (blob ? resolve(blob) : reject(new Error("blob failed"))),
-      "image/png"
+      "image/png",
     );
   });
 }

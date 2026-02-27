@@ -8,9 +8,20 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : "http://localhost:3000"
+  ),
   title: "카톡으로 보는 나의 MBTI",
   description: "카카오톡 대화를 분석해서 당신의 진짜 MBTI를 알아보세요",
   openGraph: {
+    title: "카톡으로 보는 나의 MBTI",
+    description: "카카오톡 대화를 분석해서 당신의 진짜 MBTI를 알아보세요",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
     title: "카톡으로 보는 나의 MBTI",
     description: "카카오톡 대화를 분석해서 당신의 진짜 MBTI를 알아보세요",
   },

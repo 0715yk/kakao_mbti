@@ -1,36 +1,148 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🔮 카톡으로 보는 나의 MBTI
 
-## Getting Started
+카카오톡 대화를 분석해서 당신의 **진짜 MBTI**를 알아보는 1회성 바이럴 웹앱입니다.
 
-First, run the development server:
+> 사주풀이처럼 재미있고, MBTI 검사처럼 간단하게.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## 서비스 플로우
+
+```
+시작하기 → 가이드 → 파일 업로드 → 본인 선택 → AI 분석 → 결과 확인 → 공유
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. **가이드** — 카카오톡에서 대화를 내보내는 방법을 안내합니다.
+2. **파일 업로드** — 내보낸 `.txt` 또는 `.zip` 파일을 업로드합니다.
+3. **본인 선택** — 대화 참여자 목록에서 본인을 선택합니다.
+4. **AI 분석** — GPT-4o가 대화 내용을 분석하여 MBTI를 판정합니다.
+5. **결과 화면** — MBTI 유형, 성격 분석, 자주 쓰는 표현, 찰떡궁합 등을 보여줍니다.
+6. **공유** — 결과를 이미지로 저장하거나 모바일 공유 기능으로 친구에게 보낼 수 있습니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 결과 화면에서 보여주는 것
 
-## Learn More
+| 항목 | 설명 |
+|------|------|
+| MBTI 유형 | 대화 스타일 기반 4글자 판정 |
+| 캐릭터 한줄 소개 | "리액션 폭격기", "갑분싸 수습 요정" 같은 재미있는 타이틀 |
+| 성격 분석 | 대화에서 드러나는 성격 특성 3가지 (구체적 근거 포함) |
+| 자주 쓰는 표현 | 본인이 자주 쓰는 말투/표현 5개 |
+| 많이 쓰는 단어 | 빈출 단어/이모티콘/감탄사 5개 |
+| 찰떡궁합 | 대화방에서 가장 케미 좋은 사람 + 그 사람의 추정 MBTI |
+| 재미있는 팩트 | 대화 기반 숨은 특성 1개 |
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 기술 스택
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **프레임워크**: Next.js 16 (App Router, Turbopack)
+- **스타일링**: Tailwind CSS v4
+- **AI 분석**: OpenAI GPT-4o (`/api/analyze` Route Handler)
+- **파일 처리**: 클라이언트 사이드 파싱 (JSZip으로 zip 지원)
+- **이미지 공유**: html2canvas-pro + Web Share API
+- **배포**: Vercel
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 아키텍처
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+브라우저 (클라이언트)
+├── 카톡 TXT/ZIP 파일 업로드
+├── 파일 파싱 & 메시지 추출  ← 서버로 원본 파일 전송 X
+├── 메시지 샘플링 (대화량 많을 시 600개로 축소)
+└── /api/analyze 호출
+         │
+         ▼
+Vercel Serverless Function
+├── OpenAI API 호출 (API Key 서버에서만 사용)
+└── 분석 결과 JSON 반환
+         │
+         ▼
+브라우저 (클라이언트)
+├── 결과 렌더링
+└── html2canvas로 이미지 생성 → 공유/다운로드
+```
+
+- **DB 없음** — 대화 데이터를 저장하지 않습니다.
+- **API Key 보호** — 서버 사이드 Route Handler에서만 사용됩니다.
+- **파싱은 클라이언트** — 원본 파일이 서버로 전송되지 않습니다.
+
+---
+
+## 카카오톡 파서 지원 형식
+
+다양한 카카오톡 내보내기 형식을 자동 감지합니다.
+
+```
+# iOS
+2026년 2월 27일 오후 3:22, 홍길동 : 오늘 뭐해?
+
+# iOS (구버전)
+2026. 2. 27. 오후 3:22, 홍길동 : 오늘 뭐해?
+
+# Android
+[홍길동] [오후 3:22] 오늘 뭐해?
+```
+
+시스템 메시지(사진, 동영상, 이모티콘, 입/퇴장 알림 등)는 자동으로 필터링됩니다.
+
+---
+
+## 로컬 개발
+
+```bash
+# 의존성 설치
+npm install
+
+# 환경변수 설정
+cp .env.example .env.local
+# .env.local에 OPENAI_API_KEY 입력
+
+# 개발 서버 실행
+npm run dev
+```
+
+`http://localhost:3000`에서 확인할 수 있습니다.
+
+---
+
+## Vercel 배포
+
+1. GitHub 레포를 Vercel에 연결
+2. **Settings → Environment Variables**에서 `OPENAI_API_KEY` 추가
+3. 자동 배포 완료
+
+---
+
+## 프로젝트 구조
+
+```
+src/
+├── app/
+│   ├── api/analyze/route.ts   # LLM 분석 API (서버)
+│   ├── globals.css             # 테마, 애니메이션, 공통 스타일
+│   ├── layout.tsx              # 루트 레이아웃 (모바일 뷰포트)
+│   └── page.tsx                # 메인 페이지 (화면 전환 관리)
+├── components/
+│   ├── IntroScreen.tsx         # 시작 화면
+│   ├── GuideScreen.tsx         # 카톡 내보내기 가이드
+│   ├── UploadScreen.tsx        # 파일 업로드
+│   ├── SelectUserScreen.tsx    # 본인 선택
+│   ├── AnalyzingScreen.tsx     # 분석 중 로딩
+│   └── ResultScreen.tsx        # 결과 + 공유
+└── lib/
+    ├── types.ts                # 타입 정의
+    ├── mbtiData.ts             # MBTI 16유형 메타데이터
+    └── parseKakaoChat.ts       # 카카오톡 TXT 파서
+```
+
+---
+
+## 개인정보 처리
+
+- 업로드된 대화 파일은 **브라우저에서만 처리**되며 서버에 저장되지 않습니다.
+- 서버로 전송되는 것은 **파싱 후 샘플링된 텍스트**뿐이며, 분석 완료 즉시 폐기됩니다.
+- OpenAI API 호출 시 대화 내용이 전달되나, OpenAI의 API 정책에 따라 학습에 사용되지 않습니다.

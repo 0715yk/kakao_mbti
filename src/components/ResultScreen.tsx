@@ -9,10 +9,12 @@ import RadarChart from "./RadarChart";
 export default function ResultScreen({
   result,
   userName,
+  onBack,
   onReset,
 }: {
   result: AnalysisResult;
   userName: string;
+  onBack: () => void;
   onReset: () => void;
 }) {
   const [sharing, setSharing] = useState(false);
@@ -184,16 +186,24 @@ export default function ResultScreen({
 
       {/* Actions */}
       <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0f0a1e] via-[#0f0a1e] to-transparent">
-        <div className="flex gap-3 max-w-lg mx-auto">
-          <button onClick={onReset} className="btn-secondary flex-1">
-            다시 하기
-          </button>
+        <div className="max-w-lg mx-auto flex flex-col gap-2">
+          <div className="flex gap-3">
+            <button onClick={onBack} className="btn-secondary flex-1">
+              다른 사람 분석
+            </button>
+            <button
+              onClick={handleShare}
+              disabled={sharing}
+              className="btn-primary flex-1"
+            >
+              {sharing ? "저장 중..." : saved ? "저장 완료!" : "결과 공유"}
+            </button>
+          </div>
           <button
-            onClick={handleShare}
-            disabled={sharing}
-            className="btn-primary flex-1"
+            onClick={onReset}
+            className="text-xs text-white/30 py-1 text-center"
           >
-            {sharing ? "저장 중..." : saved ? "저장 완료!" : "결과 공유"}
+            다른 채팅방으로 다시 하기
           </button>
         </div>
       </div>

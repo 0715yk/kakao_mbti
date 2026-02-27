@@ -116,6 +116,7 @@ export default function Home() {
         <ResultScreen
           result={result}
           userName={userName}
+          onBack={() => setScreen("selectUser")}
           onReset={handleReset}
         />
       )}

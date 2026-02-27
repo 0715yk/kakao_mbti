@@ -15,29 +15,50 @@ export default function ResultScreen({
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [sharing, setSharing] = useState(false);
+  const [saved, setSaved] = useState(false);
   const mbti = getMbtiData(result.mbtiType);
 
   const handleShare = async () => {
     if (!cardRef.current || sharing) return;
     setSharing(true);
+    setSaved(false);
 
     try {
+      const el = cardRef.current;
+
+      // backdrop-filter는 html2canvas에서 렌더링 불가 → 캡처 전 임시 제거
+      const cards = el.querySelectorAll<HTMLElement>(".card");
+      cards.forEach((c) => {
+        c.style.backdropFilter = "none";
+        c.style.webkitBackdropFilter = "none";
+        c.style.background = "rgba(255,255,255,0.1)";
+      });
+
       const html2canvas = (await import("html2canvas-pro")).default;
-      const canvas = await html2canvas(cardRef.current, {
+      const canvas = await html2canvas(el, {
         backgroundColor: "#0f0a1e",
         scale: 2,
         useCORS: true,
+        logging: false,
       });
 
-      const blob = await new Promise<Blob | null>((res) =>
-        canvas.toBlob(res, "image/png")
+      // 캡처 완료 후 스타일 복원
+      cards.forEach((c) => {
+        c.style.backdropFilter = "";
+        c.style.webkitBackdropFilter = "";
+        c.style.background = "";
+      });
+
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/png")
       );
-      if (!blob) return;
+      if (!blob) throw new Error("이미지 생성 실패");
 
       const file = new File([blob], "my-kakao-mbti.png", {
         type: "image/png",
       });
 
+      // 모바일: Web Share API
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           title: "카톡으로 보는 나의 MBTI",
@@ -45,15 +66,25 @@ export default function ResultScreen({
           files: [file],
         });
       } else {
+        // PC: 다운로드
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
         a.download = "my-kakao-mbti.png";
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+        // 브라우저가 다운로드 시작할 시간 확보 후 정리
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 500);
       }
-    } catch {
-      /* user cancelled share */
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      console.error("Share error:", e);
+      alert("이미지 저장에 실패했어요. 다시 시도해주세요.");
     } finally {
       setSharing(false);
     }
@@ -193,7 +224,7 @@ export default function ResultScreen({
             disabled={sharing}
             className="btn-primary flex-1"
           >
-            {sharing ? "저장 중..." : "결과 공유"}
+            {sharing ? "저장 중..." : saved ? "저장 완료!" : "결과 공유"}
           </button>
         </div>
       </div>

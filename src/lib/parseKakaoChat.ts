@@ -142,12 +142,21 @@ export function sampleMessages(
 ): ChatMessage[] {
   if (messages.length <= maxCount) return messages;
 
-  const recentCount = Math.min(250, maxCount / 2);
-  const sampleCount = maxCount - recentCount;
+  const recentCount = Math.floor(maxCount * 0.4);
+  const historicalCount = maxCount - recentCount;
   const recent = messages.slice(-recentCount);
   const rest = messages.slice(0, -recentCount);
-  const step = Math.max(1, Math.ceil(rest.length / sampleCount));
-  const sampled = rest.filter((_, i) => i % step === 0);
 
-  return [...sampled, ...recent];
+  // Fisher-Yates partial shuffle for random historical sampling
+  const indices = Array.from({ length: rest.length }, (_, i) => i);
+  for (let i = indices.length - 1; i > 0 && indices.length - i <= historicalCount; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+  const picked = indices
+    .slice(-historicalCount)
+    .sort((a, b) => a - b)
+    .map((i) => rest[i]);
+
+  return [...picked, ...recent];
 }

@@ -20,21 +20,24 @@ export interface ParsedChat {
   totalMessages: number;
 }
 
+export interface BigFive {
+  openness: number;
+  conscientiousness: number;
+  extraversion: number;
+  agreeableness: number;
+  neuroticism: number;
+}
+
 export interface AnalysisResult {
   mbtiType: string;
+  confidence: number;
   title: string;
-  description: string;
-  traits: {
-    emoji: string;
-    label: string;
-    description: string;
-  }[];
-  speechPatterns: string[];
-  frequentWords: string[];
-  bestMatch: {
-    name: string;
-    estimatedMbti: string;
-    compatibility: string;
-  } | null;
-  funFact: string;
+  summary: string;
+  socialRole: string;
+  cognitiveStyle: string;
+  bigFive: BigFive;
+  strengths: string[];
+  blindSpots: string[];
+  evidence: string[];
+  funInsight: string;
 }

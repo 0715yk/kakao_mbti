@@ -30,7 +30,7 @@ export default function ResultScreen({
       const cards = el.querySelectorAll<HTMLElement>(".card");
       cards.forEach((c) => {
         c.style.backdropFilter = "none";
-        c.style.webkitBackdropFilter = "none";
+        c.style.setProperty("-webkit-backdrop-filter", "none");
         c.style.background = "rgba(255,255,255,0.1)";
       });
 
@@ -45,7 +45,7 @@ export default function ResultScreen({
       // 캡처 완료 후 스타일 복원
       cards.forEach((c) => {
         c.style.backdropFilter = "";
-        c.style.webkitBackdropFilter = "";
+        c.style.setProperty("-webkit-backdrop-filter", "");
         c.style.background = "";
       });
 
